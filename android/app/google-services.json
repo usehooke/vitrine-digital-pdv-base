@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "667231698622",
+    "project_id": "hooke-loja-pdv-d2e5c",
+    "storage_bucket": "hooke-loja-pdv-d2e5c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:667231698622:android:c3f840dbaac5e8354668ef",
+        "android_client_info": {
+          "package_name": "com.example.vitrine_digital"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAEMnZWmk26oIhvH1tUBjN12SCLGs5GOGs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:667231698622:android:99f915fd5c1dbe714668ef",
+        "android_client_info": {
+          "package_name": "com.example.vitrine_nova"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAEMnZWmk26oIhvH1tUBjN12SCLGs5GOGs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
