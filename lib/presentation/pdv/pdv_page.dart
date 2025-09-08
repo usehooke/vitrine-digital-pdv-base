@@ -175,6 +175,7 @@ class CartView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Usamos context.watch para que o widget seja reconstruído quando o controller notificar.
     final controller = context.watch<PdvController>();
 
     return Container(
@@ -183,6 +184,7 @@ class CartView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Widgets para mostrar erros e loading (sem alterações)
           StreamBuilder<String>(
             stream: controller.errorStream,
             builder: (context, snapshot) {
@@ -209,6 +211,20 @@ class CartView extends StatelessWidget {
           ),
           Text('Carrinho', style: Theme.of(context).textTheme.headlineSmall),
           const Divider(height: 24),
+
+          // --- ALTERAÇÃO 1: INTERRUPTOR DE ATACADO ADICIONADO ---
+          SwitchListTile(
+            title: const Text('Ativar Preço de Atacado'),
+            value: controller.isManualWholesaleActive,
+            onChanged: (bool value) {
+              controller.setManualWholesale(value);
+            },
+            subtitle: controller.totalQuantity >= 5 
+              ? const Text('Ativo automaticamente (5+ peças)', style: TextStyle(color: Colors.green)) 
+              : null,
+          ),
+          // --- FIM DA ALTERAÇÃO 1 ---
+
           Expanded(
             child: controller.cart.isEmpty
                 ? const Center(child: Text('O carrinho está vazio.'))
@@ -218,7 +234,13 @@ class CartView extends StatelessWidget {
                       final item = controller.cart[index];
                       return ListTile(
                         title: Text(item.productName),
-                        subtitle: Text('${item.variantColor}, Tam: ${item.skuSize}'),
+                        
+                        // --- ALTERAÇÃO 2: MOSTRAR O PREÇO INDIVIDUAL DO ITEM ---
+                        subtitle: Text(
+                          '${item.variantColor}, Tam: ${item.skuSize} | R\$ ${item.pricePaid.toStringAsFixed(2)}',
+                        ),
+                        // --- FIM DA ALTERAÇÃO 2 ---
+
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [

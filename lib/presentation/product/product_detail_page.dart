@@ -1,4 +1,4 @@
-// CONTEÚDO COMPLETO PARA: lib/presentation/product/product_detail_page.dart
+// SUBSTITUA O CONTEÚDO DE: lib/presentation/product/product_detail_page.dart
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -34,63 +34,61 @@ class ProductDetailPage extends StatelessWidget {
       body: FutureBuilder<ProductModel>(
         future: repository.getProduct(productId),
         builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (snapshot.hasError || !snapshot.hasData) {
-              return const Center(child: Text('Erro ao carregar o produto.'));
-            }
-
-            final product = snapshot.data!;
-            final controller = ProductDetailController(repository, productId);
-
-            return ListView(
-              padding: const EdgeInsets.all(16.0),
-              children: [
-                Text(product.name, style: Theme.of(context).textTheme.headlineMedium),
-                Text('${product.category} - ${product.model}', style: Theme.of(context).textTheme.titleMedium),
-                const Divider(height: 32),
-                StreamBuilder<List<VariantModel>>(
-                  stream: controller.variantsStream,
-                  builder: (context, variantSnapshot) {
-                    if (variantSnapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-                    if (!variantSnapshot.hasData || variantSnapshot.data!.isEmpty) return const Text('Nenhuma variante encontrada.');
-                    final variants = variantSnapshot.data!;
-                    return Column(
-                      children: variants.map((variant) {
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 16),
-                          child: ExpansionTile(
-                            leading: Image.network(variant.imageUrl, width: 50, height: 50, fit: BoxFit.cover),
-                            title: Text(variant.color, style: const TextStyle(fontWeight: FontWeight.bold)),
-                            children: [
-                              StreamBuilder<List<SkuModel>>(
-                                stream: controller.getSkusStream(variant.id),
-                                builder: (context, skuSnapshot) {
-                                  if (skuSnapshot.connectionState == ConnectionState.waiting) return const Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator());
-                                  if (!skuSnapshot.hasData || skuSnapshot.data!.isEmpty) return const ListTile(title: Text('Nenhum tamanho/SKU para esta variante.'));
-                                  final skus = skuSnapshot.data!;
-                                  return Column(
-                                    children: skus.map((sku) {
-                                      return ListTile(
-                                        title: Text('Tamanho: ${sku.size}'),
-                                        subtitle: Text('SKU: ${sku.sku}'),
-                                        trailing: Text('Estoque: ${sku.stock} | R\$ ${sku.retailPrice.toStringAsFixed(2)}'),
-                                      );
-                                    }).toList(),
-                                  );
-                                },
-                              )
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                    );
-                  },
-                ),
-              ],
-            );
-          },
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError || !snapshot.hasData) {
+            return const Center(child: Text('Erro ao carregar o produto.'));
+          }
+          final product = snapshot.data!;
+          final controller = ProductDetailController(repository, productId);
+          return ListView(
+            padding: const EdgeInsets.all(16.0),
+            children: [
+              Text(product.name, style: Theme.of(context).textTheme.headlineMedium),
+              Text('${product.category} - ${product.model}', style: Theme.of(context).textTheme.titleMedium),
+              const Divider(height: 32),
+              StreamBuilder<List<VariantModel>>(
+                stream: controller.variantsStream,
+                builder: (context, variantSnapshot) {
+                  if (variantSnapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+                  if (!variantSnapshot.hasData || variantSnapshot.data!.isEmpty) return const Text('Nenhuma variante encontrada.');
+                  final variants = variantSnapshot.data!;
+                  return Column(
+                    children: variants.map((variant) {
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        child: ExpansionTile(
+                          leading: Image.network(variant.imageUrl, width: 50, height: 50, fit: BoxFit.cover),
+                          title: Text(variant.color, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          children: [
+                            StreamBuilder<List<SkuModel>>(
+                              stream: controller.getSkusStream(variant.id),
+                              builder: (context, skuSnapshot) {
+                                if (skuSnapshot.connectionState == ConnectionState.waiting) return const Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator());
+                                if (!skuSnapshot.hasData || skuSnapshot.data!.isEmpty) return const ListTile(title: Text('Nenhum SKU para esta variante.'));
+                                final skus = skuSnapshot.data!;
+                                return Column(
+                                  children: skus.map((sku) {
+                                    return ListTile(
+                                      title: Text('Tamanho: ${sku.size}'),
+                                      subtitle: Text('SKU: ${sku.generatedSku}'), // Corrigido aqui
+                                      trailing: Text('Estoque: ${sku.stock} | R\$ ${sku.retailPrice.toStringAsFixed(2)}'),
+                                    );
+                                  }).toList(),
+                                );
+                              },
+                            )
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -101,7 +99,7 @@ class ProductDetailPage extends StatelessWidget {
       builder: (dialogContext) {
         return AlertDialog(
           title: const Text('Confirmar Exclusão'),
-          content: const Text('Tem a certeza de que quer apagar este produto e todas as suas variantes? Esta ação não pode ser desfeita.'),
+          content: const Text('Tem a certeza de que quer apagar este produto? Esta ação não pode ser desfeita.'),
           actions: [
             TextButton(
               child: const Text('Cancelar'),
