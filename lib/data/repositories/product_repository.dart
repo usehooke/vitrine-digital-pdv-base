@@ -1,4 +1,4 @@
-// CONTEÚDO COMPLETO PARA: lib/data/repositories/product_repository.dart
+// CONTEÚDO COMPLETO E ATUALIZADO PARA: lib/data/repositories/product_repository.dart
 
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -152,5 +152,25 @@ class ProductRepository {
       final saleRef = _firestore.collection('sales').doc(sale.id);
       transaction.set(saleRef, sale.toMap());
     });
+  }
+
+  // ------------------- NOVO MÉTODO ADICIONADO AQUI ------------------- //
+  
+  /// Atualiza uma venda existente com o resumo gerado pela IA.
+  ///
+  /// Este método é chamado pelo PdvController depois que o resumo do Gemini
+  /// foi gerado com sucesso.
+  Future<void> updateSaleSummary({required String saleId, required String summary}) async {
+    try {
+      await _firestore
+          .collection('sales')
+          .doc(saleId)
+          .update({'geminiSummary': summary});
+    } catch (e) {
+      // Imprime o erro no console para fins de depuração.
+      print('### ERRO ao atualizar o resumo da venda no Firestore: $e');
+      // Propaga o erro para que a camada que chamou (Controller) possa tratá-lo se necessário.
+      rethrow;
+    }
   }
 }
