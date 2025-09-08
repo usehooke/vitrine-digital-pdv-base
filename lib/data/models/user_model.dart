@@ -1,25 +1,27 @@
-// CONTEÚDO CORRETO PARA: lib/data/models/user_model.dart
-
 class UserModel {
-  final String id; // ID do documento no Firestore
+  final String id;
   final String name;
-  final String pin;
-  final String role; // 'admin' ou 'pdv'
+  final String email;
+  final String role;
 
-  const UserModel({
+  UserModel({
     required this.id,
     required this.name,
-    required this.pin,
+    required this.email,
     required this.role,
   });
 
-  // Factory para criar um UserModel a partir de um mapa do Firestore
-  factory UserModel.fromFirestore(Map<String, dynamic> data, String documentId) {
+  factory UserModel.fromFirestore(Map<String, dynamic> data, String id) {
+    // Verificação explícita: se 'role' não existir, lança um erro.
+    if (data['role'] == null || (data['role'] as String).isEmpty) {
+      throw Exception('O documento do utilizador $id no Firestore não tem uma "role" definida.');
+    }
+    
     return UserModel(
-      id: documentId,
+      id: id,
       name: data['name'] ?? '',
-      pin: data['pin'] ?? '',
-      role: data['role'] ?? 'pdv',
+      email: data['email'] ?? '',
+      role: data['role'], // Agora, sem o fallback '??'.
     );
   }
 }

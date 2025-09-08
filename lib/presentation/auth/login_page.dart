@@ -1,9 +1,6 @@
-// lib/presentation/auth/login_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/notifiers/auth_state_notifier.dart';
-import '../../data/models/user_model.dart';
 import '../../data/repositories/auth_repository.dart';
 import 'login_controller.dart';
 
@@ -13,96 +10,83 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      // CORREÇÃO AQUI: Passamos as duas dependências para o controller.
       create: (context) => LoginController(
         context.read<AuthRepository>(),
         context.read<AuthStateNotifier>(),
       ),
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Selecione o Utilizador'),
-        ),
-        body: Consumer<LoginController>(
-          builder: (context, controller, child) {
-            if (controller.isLoading && controller.users.isEmpty) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (controller.users.isEmpty) {
-              return const Center(child: Text('Nenhum utilizador encontrado.'));
-            }
-            return GridView.builder(
-              padding: const EdgeInsets.all(16.0),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 1.0,
-                crossAxisSpacing: 16.0,
-                mainAxisSpacing: 16.0,
-              ),
-              itemCount: controller.users.length,
-              itemBuilder: (context, index) {
-                final user = controller.users[index];
-                return InkWell(
-                  onTap: () => _showPinDialog(context, controller, user.id),
-                  child: Card(
-                    color: Theme.of(context).cardColor,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.person, size: 48),
-                        const SizedBox(height: 8),
-                        Text(user.name, style: const TextStyle(fontSize: 16)),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            );
-          },
-        ),
-      ),
+      child: const _LoginView(),
     );
   }
+}
 
-  void _showPinDialog(BuildContext context, LoginController controller, String userId) {
-    final pinController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Digite o seu PIN'),
-          content: TextField(
-            controller: pinController,
-            keyboardType: TextInputType.number,
-            maxLength: 4,
-            obscureText: true,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 24, letterSpacing: 8),
-            decoration: const InputDecoration(counterText: ''),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final success = await controller.signInWithPin(userId, pinController.text);
-                if (success) {
-                  if(dialogContext.mounted) Navigator.of(dialogContext).pop();
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(controller.errorMessage ?? 'Ocorreu um erro.'),
-                      backgroundColor: Colors.red,
+class _LoginView extends StatelessWidget {
+  const _LoginView();
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = context.watch<LoginController>();
+    final textTheme = Theme.of(context).textTheme;
+
+    return Scaffold(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Card(
+            elevation: 4,
+            margin: const EdgeInsets.all(16.0),
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('Login', style: textTheme.headlineMedium),
+                  const SizedBox(height: 24),
+                  TextField(
+                    controller: controller.emailController,
+                    decoration: const InputDecoration(
+                      labelText: 'E-mail',
+                      border: OutlineInputBorder(),
                     ),
-                  );
-                }
-              },
-              child: const Text('Entrar'),
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: controller.passwordController,
+                    decoration: const InputDecoration(
+                      labelText: 'Senha',
+                      border: OutlineInputBorder(),
+                    ),
+                    obscureText: true,
+                  ),
+                  const SizedBox(height: 16),
+                  if (controller.errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Text(
+                        controller.errorMessage!,
+                        style: const TextStyle(color: Colors.red),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    onPressed: controller.isLoading ? null : controller.login,
+                    child: controller.isLoading
+                        ? const SizedBox.square(
+                            dimension: 24,
+                            child: CircularProgressIndicator(strokeWidth: 3),
+                          )
+                        : const Text('Entrar'),
+                  ),
+                ],
+              ),
             ),
-          ],
-        );
-      },
+          ),
+        ),
+      ),
     );
   }
 }

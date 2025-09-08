@@ -1,50 +1,60 @@
-// CONTEÚDO CORRETO PARA: lib/presentation/auth/login_controller.dart
-
 import 'package:flutter/material.dart';
 import '../../core/notifiers/auth_state_notifier.dart';
-import '../../data/models/user_model.dart';
 import '../../data/repositories/auth_repository.dart';
 
 class LoginController extends ChangeNotifier {
   final AuthRepository _authRepository;
   final AuthStateNotifier _authStateNotifier;
 
-  LoginController(this._authRepository, this._authStateNotifier) {
-    fetchUsers();
-  }
+  LoginController(this._authRepository, this._authStateNotifier);
 
-  bool _isLoading = true;
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+
+  bool _isLoading = false;
   bool get isLoading => _isLoading;
 
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  List<UserModel> _users = [];
-  List<UserModel> get users => _users;
-
-  Future<void> fetchUsers() async {
-    _isLoading = true;
-    notifyListeners();
-    _users = await _authRepository.getUsers();
-    _isLoading = false;
-    notifyListeners();
-  }
-
-  Future<bool> signInWithPin(String userId, String pin) async {
+  Future<void> login() async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
+
     try {
-      final user = await _authRepository.signInWithPin(userId, pin);
-      _authStateNotifier.setUser(user);
-      print('--- PASSO 1 (LOGIN CONTROLLER): Utilizador definido no notifier. Papel: ${user.role}');
-      return true;
+      final email = emailController.text.trim();
+      final password = passwordController.text.trim();
+
+      if (email.isEmpty || password.isEmpty) {
+        throw Exception('Por favor, preencha o e-mail e a senha.');
+      }
+
+      // Chama o método de login seguro que criámos
+      final user = await _authRepository.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // Se o login for bem-sucedido, atualiza o estado da aplicação
+      if (user != null) {
+        _authStateNotifier.setUser(user);
+      } else {
+        throw Exception('Não foi possível fazer o login.');
+      }
+
     } catch (e) {
-      _errorMessage = e.toString().replaceAll('Exception: ', '');
-      return false;
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
     } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
   }
 }
