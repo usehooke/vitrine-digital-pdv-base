@@ -1,6 +1,6 @@
-// CONTEÚDO COMPLETO E FINAL PARA: lib/data/models/sku_model.dart
+import 'package:equatable/equatable.dart';
 
-class SkuModel {
+class SkuModel extends Equatable {
   final String id;
   final String size;
   final double retailPrice;
@@ -8,7 +8,7 @@ class SkuModel {
   final int stock;
   final String generatedSku;
 
-  SkuModel({
+  const SkuModel({
     required this.id,
     required this.size,
     required this.retailPrice,
@@ -16,6 +16,8 @@ class SkuModel {
     required this.stock,
     required this.generatedSku,
   });
+
+  bool get isAvailable => stock > 0;
 
   factory SkuModel.fromFirestore(Map<String, dynamic> data, String id) {
     return SkuModel(
@@ -28,7 +30,6 @@ class SkuModel {
     );
   }
 
-  // --- NOVA LINHA ADICIONADA AQUI ---
-  /// Getter que calcula se o item está disponível baseado no estoque.
-  bool get isAvailable => stock > 0;
+  @override
+  List<Object?> get props => [id, size, retailPrice, wholesalePrice, stock, generatedSku];
 }

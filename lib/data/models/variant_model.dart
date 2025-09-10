@@ -1,6 +1,6 @@
-// NOVO FICHEIRO: lib/data/models/variant_model.dart
+import 'package:equatable/equatable.dart';
 
-class VariantModel {
+class VariantModel extends Equatable {
   final String id;
   final String color;
   final String imageUrl;
@@ -18,4 +18,7 @@ class VariantModel {
       imageUrl: data['imageUrl'] ?? '',
     );
   }
+
+  @override
+  List<Object?> get props => [id, color, imageUrl];
 }

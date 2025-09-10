@@ -9,6 +9,10 @@ class AuthStateNotifier extends ChangeNotifier {
   UserModel? _user;
   StreamSubscription<User?>? _authSub;
 
+  // Adicionamos um estado para saber se a verificação inicial já foi feita
+  bool _isAuthCheckComplete = false;
+  bool get isAuthCheckComplete => _isAuthCheckComplete;
+
   AuthStateNotifier(this._authRepository) {
     // Escuta continuamente as alterações de estado do Firebase Auth
     _authSub = _authRepository.authStateChanges.listen(_handleAuthStateChanged);
@@ -33,6 +37,12 @@ class AuthStateNotifier extends ChangeNotifier {
         setUser(null);
       }
     }
+
+    // Marca a verificação como completa após a primeira execução
+    if (!_isAuthCheckComplete) {
+      _isAuthCheckComplete = true;
+      notifyListeners();
+    }
   }
 
   UserModel? get user => _user;
@@ -47,7 +57,7 @@ class AuthStateNotifier extends ChangeNotifier {
 
   Future<void> logout() async {
     await _authRepository.signOut();
-    setUser(null);
+    // A chamada a setUser(null) já é feita pelo listener _handleAuthStateChanged
   }
 
   @override

@@ -1,11 +1,13 @@
-class ProductModel {
+import 'package:equatable/equatable.dart';
+
+class ProductModel extends Equatable {
   final String id;
   final String name;
   final String model;
   final String category;
-  final String mainImageUrl; // Nome correto da imagem
+  final String mainImageUrl;
 
-  ProductModel({
+  const ProductModel({
     required this.id,
     required this.name,
     required this.model,
@@ -19,7 +21,7 @@ class ProductModel {
       name: data['name'] ?? '',
       model: data['model'] ?? '',
       category: data['category'] ?? '',
-      mainImageUrl: data['mainImageUrl'] ?? '', // Corrigido aqui
+      mainImageUrl: data['mainImageUrl'] ?? '',
     );
   }
 
@@ -31,4 +33,7 @@ class ProductModel {
       'mainImageUrl': mainImageUrl,
     };
   }
+
+  @override
+  List<Object?> get props => [id, name, model, category, mainImageUrl];
 }
