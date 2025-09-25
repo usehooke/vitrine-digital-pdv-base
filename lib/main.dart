@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+// foundation imports not required here
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -23,7 +24,7 @@ void main() async {
           create: (_) => AuthRepository(FirebaseAuth.instance, FirebaseFirestore.instance),
         ),
         Provider<ProductRepository>(
-          create: (_) => ProductRepository(FirebaseFirestore.instance),
+          create: (_) => ProductRepository(firestore: FirebaseFirestore.instance),
         ),
         ChangeNotifierProvider<AuthStateNotifier>(
           create: (context) => AuthStateNotifier(context.read<AuthRepository>()),

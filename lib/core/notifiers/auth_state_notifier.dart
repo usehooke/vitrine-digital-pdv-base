@@ -27,13 +27,13 @@ class AuthStateNotifier extends ChangeNotifier {
         if (userModel == null) {
           // Caso de segurança: o utilizador existe na Auth, mas não no Firestore.
           // Força o logout para evitar um estado inconsistente.
-          print('### AVISO: Utilizador ${firebaseUser.uid} autenticado mas sem perfil no Firestore. A deslogar.');
+          debugPrint('### AVISO: Utilizador ${firebaseUser.uid} autenticado mas sem perfil no Firestore. A deslogar.');
           await logout();
         } else {
           setUser(userModel);
         }
       } catch (e) {
-        print('### ERRO ao obter dados do utilizador no Notifier: $e');
+        debugPrint('### ERRO ao obter dados do utilizador no Notifier: $e');
         setUser(null);
       }
     }

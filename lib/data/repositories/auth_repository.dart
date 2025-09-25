@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import '../models/user_model.dart' as app;
 
 class AuthRepository {
@@ -14,7 +15,7 @@ class AuthRepository {
     required String email,
     required String password,
   }) async {
-    print('--- AUTH REPO: Tentando login para o e-mail: $email ---');
+  debugPrint('--- AUTH REPO: Tentando login para o e-mail: $email ---');
     try {
       final userCredential = await _firebaseAuth.signInWithEmailAndPassword(
         email: email,
@@ -22,16 +23,16 @@ class AuthRepository {
       );
       final firebaseUser = userCredential.user;
       if (firebaseUser == null) {
-        print('--- AUTH REPO: Login na Auth teve sucesso, mas o utilizador é nulo.');
+  debugPrint('--- AUTH REPO: Login na Auth teve sucesso, mas o utilizador é nulo.');
         throw Exception('Utilizador do Firebase não encontrado após o login.');
       }
-      print('--- AUTH REPO: Login na Auth bem-sucedido. UID: ${firebaseUser.uid} ---');
+  debugPrint('--- AUTH REPO: Login na Auth bem-sucedido. UID: ${firebaseUser.uid} ---');
       return await getUserData(firebaseUser.uid);
     } on FirebaseAuthException catch (e) {
-      print('--- AUTH REPO: ERRO de autenticação do Firebase: ${e.code} ---');
+  debugPrint('--- AUTH REPO: ERRO de autenticação do Firebase: ${e.code} ---');
       throw Exception('Email ou senha inválidos.');
     } catch (e) {
-      print('--- AUTH REPO: ERRO inesperado no signIn: $e');
+  debugPrint('--- AUTH REPO: ERRO inesperado no signIn: $e');
       rethrow;
     }
   }
@@ -68,18 +69,18 @@ class AuthRepository {
   }
 
   Future<app.UserModel?> getUserData(String userId) async {
-    print('--- AUTH REPO: A procurar documento em /users/$userId ---');
+  debugPrint('--- AUTH REPO: A procurar documento em /users/$userId ---');
     try {
       final doc = await _firestore.collection('users').doc(userId).get();
       if (doc.exists) {
-        print('--- AUTH REPO: Documento encontrado! Dados: ${doc.data()} ---');
+  debugPrint('--- AUTH REPO: Documento encontrado! Dados: ${doc.data()} ---');
         return app.UserModel.fromFirestore(doc.data()!, doc.id);
       } else {
-        print('--- AUTH REPO: AVISO! doc.exists é falso. Documento não foi encontrado. ---');
+  debugPrint('--- AUTH REPO: AVISO! doc.exists é falso. Documento não foi encontrado. ---');
         return null;
       }
     } catch (e) {
-      print('--- AUTH REPO: ERRO CRÍTICO ao tentar buscar o documento: $e ---');
+  debugPrint('--- AUTH REPO: ERRO CRÍTICO ao tentar buscar o documento: $e ---');
       rethrow;
     }
   }
@@ -91,13 +92,13 @@ class AuthRepository {
           .map((d) => app.UserModel.fromFirestore(d.data(), d.id))
           .toList();
     } catch (e) {
-      print('### ERRO ao buscar todos os utilizadores: $e');
+  debugPrint('### ERRO ao buscar todos os utilizadores: $e');
       rethrow;
     }
   }
 
   Future<void> signOut() async {
-    print('--- AUTH REPO: A fazer logout ---');
+  debugPrint('--- AUTH REPO: A fazer logout ---');
     await _firebaseAuth.signOut();
   }
 }

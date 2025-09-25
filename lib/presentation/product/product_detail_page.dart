@@ -1,5 +1,4 @@
-// SUBSTITUA O CONTEÚDO DE: lib/presentation/product/product_detail_page.dart
-
+// ignore_for_file: sort_child_properties_last
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -12,13 +11,13 @@ import 'product_detail_controller.dart';
 
 class ProductDetailPage extends StatelessWidget {
   final String productId;
-  const ProductDetailPage({ super.key, required this.productId });
+  const ProductDetailPage({super.key, required this.productId});
 
   @override
   Widget build(BuildContext context) {
     final repository = context.read<ProductRepository>();
     final user = context.watch<AuthStateNotifier>().user;
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detalhes do Produto'),
@@ -34,12 +33,8 @@ class ProductDetailPage extends StatelessWidget {
       body: FutureBuilder<ProductModel>(
         future: repository.getProduct(productId),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError || !snapshot.hasData) {
-            return const Center(child: Text('Erro ao carregar o produto.'));
-          }
+          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+          if (snapshot.hasError || !snapshot.hasData) return const Center(child: Text('Erro ao carregar o produto.'));
           final product = snapshot.data!;
           final controller = ProductDetailController(repository, productId);
           return ListView(
@@ -59,7 +54,7 @@ class ProductDetailPage extends StatelessWidget {
                       return Card(
                         margin: const EdgeInsets.only(bottom: 16),
                         child: ExpansionTile(
-                          leading: Image.network(variant.imageUrl, width: 50, height: 50, fit: BoxFit.cover),
+                          leading: variant.imageUrl.isNotEmpty ? Image.network(variant.imageUrl, width: 50, height: 50, fit: BoxFit.cover) : null,
                           title: Text(variant.color, style: const TextStyle(fontWeight: FontWeight.bold)),
                           children: [
                             StreamBuilder<List<SkuModel>>(
@@ -72,7 +67,7 @@ class ProductDetailPage extends StatelessWidget {
                                   children: skus.map((sku) {
                                     return ListTile(
                                       title: Text('Tamanho: ${sku.size}'),
-                                      subtitle: Text('SKU: ${sku.generatedSku}'), // Corrigido aqui
+                                      subtitle: Text('SKU: ${sku.generatedSku}'),
                                       trailing: Text('Estoque: ${sku.stock} | R\$ ${sku.retailPrice.toStringAsFixed(2)}'),
                                     );
                                   }).toList(),
@@ -101,10 +96,7 @@ class ProductDetailPage extends StatelessWidget {
           title: const Text('Confirmar Exclusão'),
           content: const Text('Tem a certeza de que quer apagar este produto? Esta ação não pode ser desfeita.'),
           actions: [
-            TextButton(
-              child: const Text('Cancelar'),
-              onPressed: () => Navigator.of(dialogContext).pop(),
-            ),
+            TextButton(child: const Text('Cancelar'), onPressed: () => Navigator.of(dialogContext).pop()),
             FilledButton(
               child: const Text('Apagar'),
               style: FilledButton.styleFrom(backgroundColor: Colors.red),
@@ -113,15 +105,11 @@ class ProductDetailPage extends StatelessWidget {
                   await repository.deleteProduct(productId);
                   if (context.mounted) {
                     context.go('/home');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Produto apagado com sucesso!'), backgroundColor: Colors.green),
-                    );
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Produto apagado com sucesso!'), backgroundColor: Colors.green));
                   }
                 } catch (e) {
                   if (context.mounted) {
-                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Erro ao apagar o produto.'), backgroundColor: Colors.red),
-                    );
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erro ao apagar o produto.'), backgroundColor: Colors.red));
                   }
                 }
               },

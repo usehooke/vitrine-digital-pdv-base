@@ -31,6 +31,54 @@
 
   <title>vitrine_nova</title>
   <link rel="manifest" href="manifest.json">
+  <!-- ZXing UMD required by mobile_scanner web implementation -->
+  <!-- Prefer a local vendor file (web/vendor/zxing/index.min.js) to avoid CDN/network race.
+       If not present, fall back to CDN. Mapping ensures BrowserMultiFormatReader is available globally. -->
+  <script>
+    (function () {
+      function mapZxing() {
+        try {
+          if (window['ZXing'] && window['ZXing'].BrowserMultiFormatReader) {
+            window['BrowserMultiFormatReader'] = window['ZXing'].BrowserMultiFormatReader;
+            window['__zxing_present'] = true;
+            return true;
+          }
+          if (window['ZXing'] && window['ZXing'].default && window['ZXing'].default.BrowserMultiFormatReader) {
+            window['BrowserMultiFormatReader'] = window['ZXing'].default.BrowserMultiFormatReader;
+            window['__zxing_present'] = true;
+            return true;
+          }
+        } catch (e) {
+          console.error('ZXing mapping failed', e);
+        }
+        return false;
+      }
+
+      function loadScript(src, onload, onerror) {
+        var s = document.createElement('script');
+        s.src = src;
+        s.async = false;
+        s.onload = onload;
+        s.onerror = onerror;
+        document.head.appendChild(s);
+      }
+
+      // Try local vendor first
+      loadScript('vendor/zxing/index.min.js', function () {
+        if (!mapZxing()) {
+          // try CDN as fallback
+          loadScript('https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/dist/index.min.js', mapZxing, function () {
+            console.warn('Failed to load ZXing from CDN fallback. Scanner web plugin may not work.');
+          });
+        }
+      }, function () {
+        // local failed -> CDN
+        loadScript('https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/dist/index.min.js', mapZxing, function () {
+          console.warn('Failed to load ZXing from CDN fallback. Scanner web plugin may not work.');
+        });
+      });
+    })();
+  </script>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>

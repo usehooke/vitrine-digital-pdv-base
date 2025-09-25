@@ -1,13 +1,17 @@
+// Some small constructor const suggestions are not applicable in this layout.
+// ignore_for_file: prefer_const_constructors
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/notifiers/auth_state_notifier.dart';
 import '../../data/models/product_model.dart';
 import '../../data/models/sale_item_model.dart';
 import '../../data/models/sku_model.dart';
-import '../../data/models/variant_model.dart';
+// removed unused import: variant_model
 import '../../data/repositories/product_repository.dart';
 import '../widgets/product_card.dart';
 import 'pdv_controller.dart';
+import '../qr/scanner_page.dart';
+import '../admin/print_label_page.dart';
 
 class PdvPage extends StatelessWidget {
   const PdvPage({super.key});
@@ -16,28 +20,66 @@ class PdvPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = context.read<AuthStateNotifier>().user;
     if (user == null) {
-      // Esta verificação de segurança garante que a página não é construída sem um utilizador.
       return const Scaffold(body: Center(child: Text('Erro: Utilizador não autenticado.')));
     }
 
-    // O ChangeNotifierProvider garante que o PdvController está disponível para os widgets abaixo.
-    return ChangeNotifierProvider(
+    return Provider(
       create: (context) => PdvController(context.read<ProductRepository>(), user),
-      child: Scaffold(
-        appBar: AppBar(title: const Text('Ponto de Venda')),
-        body: const Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(flex: 3, child: _ProductGridPdv()),
-            Expanded(flex: 2, child: _CartViewPdv()),
-          ],
-        ),
+      dispose: (_, controller) => controller.dispose(),
+      child: Builder(
+        builder: (innerContext) {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Ponto de Venda'),
+              actions: [
+                IconButton(
+                  tooltip: 'Scan',
+                  icon: const Icon(Icons.qr_code_scanner),
+                  onPressed: () async {
+                    final repo = innerContext.read<ProductRepository>();
+                    final pdvController = innerContext.read<PdvController>();
+                    final result = await Navigator.of(innerContext).push<String>(
+                      MaterialPageRoute(builder: (_) => const ScannerPage()),
+                    );
+                    if (result == null || result.isEmpty) return;
+                    final index = await repo.findSkuIndexByGeneratedCode(result);
+                    if (index == null) {
+                      if (innerContext.mounted) {
+                        ScaffoldMessenger.of(innerContext).showSnackBar(const SnackBar(content: Text('SKU não encontrado')));
+                      }
+                      return;
+                    }
+                    try {
+                      final sku = await repo.getSkuOnDemand(index['productId']!, index['variantId']!, index['skuId']!);
+                      final product = await repo.getProduct(index['productId']!);
+                      final variant = product.variants.firstWhere((v) => v.id == index['variantId']);
+                      pdvController.addItem(product, variant, sku);
+                      if (innerContext.mounted) {
+                        ScaffoldMessenger.of(innerContext).showSnackBar(const SnackBar(content: Text('Item adicionado pelo QR'), backgroundColor: Colors.green));
+                      }
+                    } catch (e) {
+                      if (innerContext.mounted) {
+                        ScaffoldMessenger.of(innerContext).showSnackBar(SnackBar(content: Text('Erro ao adicionar item: $e')));
+                      }
+                    }
+                  },
+                ),
+              ],
+            ),
+            body: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Expanded(flex: 3, child: _ProductGridPdv()),
+                Expanded(flex: 2, child: _CartViewPdv()),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 }
 
-/// Widget privado para a grelha de produtos.
 class _ProductGridPdv extends StatelessWidget {
   const _ProductGridPdv();
 
@@ -49,11 +91,11 @@ class _ProductGridPdv extends StatelessWidget {
       stream: productRepo.getProductsStream(),
       builder: (context, snapshot) {
         if (snapshot.hasError) return Center(child: Text('Erro: ${snapshot.error}'));
-        if (!snapshot.hasData || snapshot.data == null) return const Center(child: CircularProgressIndicator());
-        
+        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+
         final products = snapshot.data!;
         if (products.isEmpty) return const Center(child: Text('Nenhum produto encontrado.'));
-        
+
         return GridView.builder(
           padding: const EdgeInsets.all(16.0),
           gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
@@ -76,69 +118,73 @@ class _ProductGridPdv extends StatelessWidget {
   }
 
   void _showVariantSelectionDialog(BuildContext context, ProductModel product) {
-    final productRepo = context.read<ProductRepository>();
-    // Usamos 'read' porque estamos dentro de uma função de callback.
     final pdvController = context.read<PdvController>();
+    final productRepo = context.read<ProductRepository>();
+    final variants = product.variants;
 
     showDialog(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: Text('Selecione a Variante para "${product.name}"'),
+          title: Text('Selecione a Variante de ${product.name}'),
           content: SizedBox(
             width: double.maxFinite,
-            child: StreamBuilder<List<VariantModel>>(
-              stream: productRepo.getVariantsStream(product.id),
-              builder: (context, variantSnapshot) {
-                if (!variantSnapshot.hasData) return const Center(child: CircularProgressIndicator());
-                final variants = variantSnapshot.data!;
-                return ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: variants.length,
-                  itemBuilder: (context, index) {
-                    final variant = variants[index];
-                    return ExpansionTile(
-                      leading: Image.network(variant.imageUrl, width: 40, height: 40, fit: BoxFit.cover),
-                      title: Text(variant.color),
-                      children: [
-                        StreamBuilder<List<SkuModel>>(
-                          stream: productRepo.getSkusStream(product.id, variant.id),
-                          builder: (context, skuSnapshot) {
-                            if (!skuSnapshot.hasData) return const Center(child: CircularProgressIndicator());
-                            final skus = skuSnapshot.data!;
-                            return Column(
-                              children: skus.map((sku) {
-                                return ListTile(
-                                  title: Text('Tamanho: ${sku.size}'),
-                                  subtitle: Text('Estoque: ${sku.stock}'),
-                                  trailing: Text('R\$ ${sku.retailPrice.toStringAsFixed(2)}'),
-                                  onTap: () {
-                                    if (sku.isAvailable) {
-                                      pdvController.addItem(product, variant, sku);
-                                      Navigator.of(dialogContext).pop();
-                                    } else {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Este SKU está sem estoque.'), backgroundColor: Colors.orange),
-                                      );
-                                    }
-                                  },
+            child: variants.isEmpty
+                ? const Text('Sem variantes.')
+                : ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: variants.length,
+                    itemBuilder: (context, vIdx) {
+                      final variant = variants[vIdx];
+                      // Carrega SKUs sob demanda: usa primeira emissão do stream
+                      final futureSkus = productRepo.getSkusStream(product.id, variant.id).first;
+                      return ExpansionTile(
+                        title: Text(variant.color),
+                        children: [
+                          FutureBuilder<List<SkuModel>>(
+                            future: futureSkus,
+                            builder: (context, snap) {
+                              if (snap.connectionState == ConnectionState.waiting) {
+                                return const Padding(
+                                  padding: EdgeInsets.all(12.0),
+                                  child: Center(child: SizedBox(height: 24, width: 24, child: CircularProgressIndicator())),
                                 );
-                              }).toList(),
-                            );
-                          },
-                        )
-                      ],
-                    );
-                  },
-                );
-              },
-            ),
+                              }
+                              if (snap.hasError) {
+                                return ListTile(title: Text('Erro ao carregar SKUs: ${snap.error}'));
+                              }
+                              final skus = snap.data ?? [];
+                              if (skus.isEmpty) return const ListTile(title: Text('Sem SKUs'));
+                              return Column(
+                                children: skus.map((sku) {
+                                  return ListTile(
+                                    title: Text('Tam: ${sku.size}  |  R\$ ${sku.retailPrice.toStringAsFixed(2)}'),
+                                    subtitle: Text('Estoque: ${sku.stock}'),
+                                    onTap: () {
+                                      Navigator.of(dialogContext).pop();
+                                      // Se SKU tem campos mínimos ou precisa de refresh, pode também chamar getSkuOnDemand
+                                      pdvController.addItem(product, variant, sku);
+                                    },
+                                    trailing: sku.qrImageUrl != null
+                                        ? IconButton(
+                                            icon: const Icon(Icons.print),
+                                            onPressed: () {
+                                              Navigator.of(dialogContext).push(MaterialPageRoute(builder: (_) => PrintLabelPage(qrUrl: sku.qrImageUrl, skuText: sku.generatedSku)));
+                                            },
+                                          )
+                                        : null,
+                                  );
+                                }).toList(),
+                              );
+                            },
+                          ),
+                        ],
+                      );
+                    },
+                  ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancelar'),
-            ),
+            TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Fechar')),
           ],
         );
       },
@@ -146,14 +192,11 @@ class _ProductGridPdv extends StatelessWidget {
   }
 }
 
-
-/// Widget privado para a vista do carrinho, usando ValueListenableBuilders para performance.
 class _CartViewPdv extends StatelessWidget {
   const _CartViewPdv();
 
   @override
   Widget build(BuildContext context) {
-    // Usamos .read pois as atualizações serão geridas pelos ValueListenableBuilders
     final controller = context.read<PdvController>();
 
     return Container(
@@ -164,52 +207,38 @@ class _CartViewPdv extends StatelessWidget {
         children: [
           Text('Carrinho', style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 8),
-
-          // Ouve apenas as mudanças do 'manualWholesale' e da quantidade total
-          ValueListenableBuilder<bool>(
-            valueListenable: controller.manualWholesale,
-            builder: (context, isManual, child) {
-              // Reconstroi o widget que depende da quantidade total
-              final totalQuantity = context.select((PdvController c) => c.totalQuantity);
+          AnimatedBuilder(
+            animation: Listenable.merge([controller.manualWholesale, controller.totalQuantity]),
+            builder: (context, _) {
+              final isManual = controller.manualWholesale.value;
+              final totalQty = controller.totalQuantity.value;
               return SwitchListTile(
                 title: const Text('Ativar Preço de Atacado'),
                 value: isManual,
                 onChanged: controller.setManualWholesale,
-                subtitle: totalQuantity >= 5 
-                  ? const Text('Ativo automaticamente (5+ peças)', style: TextStyle(color: Colors.green)) 
-                  : null,
+                subtitle: totalQty >= 5 ? const Text('Ativo automaticamente (5+ peças)', style: TextStyle(color: Colors.green)) : null,
               );
             },
           ),
           const Divider(height: 24),
-
-          // Ouve apenas as mudanças da lista 'cart'
           Expanded(
             child: ValueListenableBuilder<List<SaleItemModel>>(
               valueListenable: controller.cart,
               builder: (context, cartItems, child) {
-                if (cartItems.isEmpty) {
-                  return const Center(child: Text('O carrinho está vazio.'));
-                }
+                if (cartItems.isEmpty) return const Center(child: Text('O carrinho está vazio.'));
                 return ListView.builder(
                   itemCount: cartItems.length,
                   itemBuilder: (context, index) {
                     final item = cartItems[index];
                     return ListTile(
                       title: Text(item.productName),
-                      subtitle: Text('${item.variantColor}, Tam: ${item.skuSize} | R\$ ${item.pricePaid.toStringAsFixed(2)}'),
+                      subtitle: Text('${item.variantColor}, Tam: ${item.skuSize} • R\$ ${item.pricePaid.toStringAsFixed(2)}'),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          IconButton(
-                            icon: const Icon(Icons.remove),
-                            onPressed: () => controller.decrementQuantity(item.sku.id),
-                          ),
+                          IconButton(icon: const Icon(Icons.remove), onPressed: () => controller.decrementQuantity(item.sku.id)),
                           Text(item.quantity.toString(), style: Theme.of(context).textTheme.titleMedium),
-                          IconButton(
-                            icon: const Icon(Icons.add),
-                            onPressed: () => controller.incrementQuantity(item.sku.id),
-                          ),
+                          IconButton(icon: const Icon(Icons.add), onPressed: () => controller.incrementQuantity(item.sku.id)),
                         ],
                       ),
                     );
@@ -219,8 +248,6 @@ class _CartViewPdv extends StatelessWidget {
             ),
           ),
           const Divider(height: 24),
-
-          // Ouve apenas as mudanças do 'totalAmount'
           ValueListenableBuilder<double>(
             valueListenable: controller.totalAmount,
             builder: (context, total, child) {
@@ -228,41 +255,28 @@ class _CartViewPdv extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text('Total:', style: Theme.of(context).textTheme.headlineSmall),
-                  Text(
-                    'R\$ ${total.toStringAsFixed(2)}',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Theme.of(context).primaryColor),
-                  ),
+                  Text('R\$ ${total.toStringAsFixed(2)}', style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Theme.of(context).primaryColor)),
                 ],
               );
             },
           ),
           const SizedBox(height: 16),
-
-          // Ouve as mudanças do 'isProcessingSale' e do 'cart'
-          ValueListenableBuilder<bool>(
-            valueListenable: controller.isProcessingSale,
-            builder: (context, isProcessing, child) {
-              final cartIsEmpty = context.select((PdvController c) => c.cart.value.isEmpty);
+          AnimatedBuilder(
+            animation: Listenable.merge([controller.cart, controller.isProcessingSale]),
+            builder: (context, _) {
+              final isProcessing = controller.isProcessingSale.value;
+              final cartIsEmpty = controller.cart.value.isEmpty;
               return FilledButton(
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.all(20),
-                ),
+                style: FilledButton.styleFrom(padding: const EdgeInsets.all(20)),
                 onPressed: cartIsEmpty || isProcessing
-                  ? null
-                  : () async {
-                      final result = await controller.finalizeSale();
-                      if (context.mounted && result != null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(result),
-                            backgroundColor: result.contains('sucesso') ? Colors.green : Colors.red,
-                          ),
-                        );
-                      }
-                    },
-                child: isProcessing
-                  ? const SizedBox.square(dimension: 24, child: CircularProgressIndicator(color: Colors.white))
-                  : const Text('Finalizar Venda', style: TextStyle(fontSize: 18)),
+                    ? null
+                    : () async {
+                        final result = await controller.finalizeSale();
+                        if (context.mounted && result != null) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result), backgroundColor: result.contains('sucesso') ? Colors.green : Colors.red));
+                        }
+                      },
+                child: isProcessing ? const SizedBox.square(dimension: 24, child: CircularProgressIndicator(color: Colors.white)) : const Text('Finalizar Venda', style: TextStyle(fontSize: 18)),
               );
             },
           ),

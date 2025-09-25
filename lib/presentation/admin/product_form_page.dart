@@ -78,7 +78,7 @@ class ProductFormPage extends StatelessWidget {
           // Overlay de loading ao salvar
           if (controller.isSaving)
             Container(
-              color: Colors.black.withOpacity(0.5),
+              color: const Color.fromRGBO(0, 0, 0, 0.5),
               child: const Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,

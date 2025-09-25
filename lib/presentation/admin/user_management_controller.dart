@@ -4,6 +4,8 @@ import '../../data/repositories/auth_repository.dart';
 
 class UserManagementController extends ChangeNotifier {
   final AuthRepository _authRepository;
+  bool _disposed = false;
+
   UserManagementController(this._authRepository) {
     fetchUsers();
   }
@@ -20,14 +22,14 @@ class UserManagementController extends ChangeNotifier {
   Future<void> fetchUsers() async {
     _isLoading = true;
     _errorMessage = null;
-    notifyListeners();
+    if (!_disposed) notifyListeners();
     try {
       _users = await _authRepository.getAllUsers();
     } catch (e) {
       _errorMessage = 'Erro ao carregar utilizadores. Verifique as suas permissões.';
     } finally {
       _isLoading = false;
-      notifyListeners();
+      if (!_disposed) notifyListeners();
     }
   }
 
@@ -38,7 +40,7 @@ class UserManagementController extends ChangeNotifier {
     required String role,
   }) async {
     _isLoading = true;
-    notifyListeners();
+  if (!_disposed) notifyListeners();
     String? error;
     try {
       await _authRepository.createUserWithEmailAndPassword(
@@ -52,22 +54,28 @@ class UserManagementController extends ChangeNotifier {
       error = e.toString().replaceAll('Exception: ', '');
     } finally {
       _isLoading = false;
-      notifyListeners();
+      if (!_disposed) notifyListeners();
     }
     return error;
   }
 
   Future<String?> updateUser(String userId, String name, String role) async {
     // TODO: Adicionar um método 'updateUser' ao seu AuthRepository
-    print('Lógica de atualização para $userId com nome $name e função $role');
+    debugPrint('Lógica de atualização para $userId com nome $name e função $role');
     await fetchUsers();
     return null;
   }
 
   Future<String?> deleteUser(String userId) async {
     // TODO: A exclusão de utilizadores da Auth requer uma Cloud Function por segurança.
-    print('Lógica para apagar o utilizador $userId');
+    debugPrint('Lógica para apagar o utilizador $userId');
     await fetchUsers();
     return null;
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 }

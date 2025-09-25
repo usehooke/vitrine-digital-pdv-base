@@ -1,31 +1,44 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
-import 'package:uuid/uuid.dart';
+// uuid import removed (unused in tests)
 
 import 'package:vitrine_nova/data/models/product_model.dart';
 import 'package:vitrine_nova/data/models/sku_model.dart';
 import 'package:vitrine_nova/data/models/user_model.dart';
+import 'package:vitrine_nova/data/models/sale_model.dart';
 import 'package:vitrine_nova/data/models/variant_model.dart';
 import 'package:vitrine_nova/data/repositories/product_repository.dart';
 import 'package:vitrine_nova/presentation/pdv/pdv_controller.dart';
 
 class MockProductRepository extends Mock implements ProductRepository {}
 
+/// A simple fake that overrides only the `processSale` method to avoid
+/// mockito null-safety matcher issues in tests. We keep other behavior from
+/// MockProductRepository when not needed.
+class FakeProductRepository extends Mock implements ProductRepository {
+  @override
+  Future<void> processSale(SaleModel sale) async {
+    // No-op successful completion
+    return Future<void>.value();
+  }
+}
+
 void main() {
   late PdvController controller;
-  late MockProductRepository mockRepo;
+  late ProductRepository mockRepo;
   late UserModel mockUser;
 
   setUp(() {
-    mockRepo = MockProductRepository();
-    mockUser = const UserModel(id: 'user123', name: 'Fernando');
+  // Use a fake implementation that guarantees processSale returns a Future.
+  mockRepo = FakeProductRepository();
+    mockUser = const UserModel(id: 'user123', name: 'Fernando', email: '', role: 'seller');
     controller = PdvController(mockRepo, mockUser);
   });
 
   test('Adiciona item ao carrinho com estoque disponível', () {
-    final product = ProductModel(id: 'p1', name: 'Tênis', model: 'AirMax');
-    final variant = VariantModel(id: 'v1', color: 'Preto', imageUrl: '');
-    final sku = SkuModel(
+  const product = ProductModel(id: 'p1', name: 'Tênis', model: 'AirMax', category: '', mainImageUrl: '');
+    const variant = VariantModel(id: 'v1', color: 'Preto', imageUrl: '');
+    const sku = SkuModel(
       id: 'sku1',
       size: '42',
       generatedSku: 'AIRMAX-42-PRETO',
@@ -36,15 +49,15 @@ void main() {
 
     controller.addItem(product, variant, sku);
 
-    expect(controller.cart.length, 1);
-    expect(controller.cart.first.quantity, 1);
-    expect(controller.totalAmount, sku.retailPrice);
+  expect(controller.cart.value.length, 1);
+  expect(controller.cart.value.first.quantity, 1);
+  expect(controller.totalAmount.value, sku.retailPrice);
   });
 
   test('Não adiciona item sem estoque', () {
-    final product = ProductModel(id: 'p1', name: 'Tênis', model: 'AirMax');
-    final variant = VariantModel(id: 'v1', color: 'Preto', imageUrl: '');
-    final sku = SkuModel(
+  const product = ProductModel(id: 'p1', name: 'Tênis', model: 'AirMax', category: '', mainImageUrl: '');
+  const variant = VariantModel(id: 'v1', color: 'Preto', imageUrl: '');
+    const sku = SkuModel(
       id: 'sku1',
       size: '42',
       generatedSku: 'AIRMAX-42-PRETO',
@@ -55,13 +68,13 @@ void main() {
 
     controller.addItem(product, variant, sku);
 
-    expect(controller.cart.isEmpty, true);
+  expect(controller.cart.value.isEmpty, true);
   });
 
   test('Incrementa quantidade respeitando o estoque', () {
-    final product = ProductModel(id: 'p1', name: 'Tênis', model: 'AirMax');
-    final variant = VariantModel(id: 'v1', color: 'Preto', imageUrl: '');
-    final sku = SkuModel(
+  const product = ProductModel(id: 'p1', name: 'Tênis', model: 'AirMax', category: '', mainImageUrl: '');
+  const variant = VariantModel(id: 'v1', color: 'Preto', imageUrl: '');
+  const sku = SkuModel(
       id: 'sku1',
       size: '42',
       generatedSku: 'AIRMAX-42-PRETO',
@@ -70,17 +83,17 @@ void main() {
       stock: 2,
     );
 
-    controller.addItem(product, variant, sku);
-    controller.incrementQuantity(sku.id, sku.stock);
-    controller.incrementQuantity(sku.id, sku.stock); // deve ser ignorado
+  controller.addItem(product, variant, sku);
+  controller.incrementQuantity(sku.id);
+  controller.incrementQuantity(sku.id); // deve ser ignorado (máximo estoque)
 
-    expect(controller.cart.first.quantity, 2);
+  expect(controller.cart.value.first.quantity, 2);
   });
 
   test('Remove item do carrinho', () {
-    final product = ProductModel(id: 'p1', name: 'Tênis', model: 'AirMax');
-    final variant = VariantModel(id: 'v1', color: 'Preto', imageUrl: '');
-    final sku = SkuModel(
+  const product = ProductModel(id: 'p1', name: 'Tênis', model: 'AirMax', category: '', mainImageUrl: '');
+  const variant = VariantModel(id: 'v1', color: 'Preto', imageUrl: '');
+    const sku = SkuModel(
       id: 'sku1',
       size: '42',
       generatedSku: 'AIRMAX-42-PRETO',
@@ -89,18 +102,17 @@ void main() {
       stock: 10,
     );
 
-    controller.addItem(product, variant, sku);
-    controller.removeItem(sku.id);
+  controller.addItem(product, variant, sku);
+  controller.decrementQuantity(sku.id);
 
-    expect(controller.cart.isEmpty, true);
+  expect(controller.cart.value.isEmpty, true);
   });
 
   test('Finaliza venda com sucesso', () async {
-    when(mockRepo.processSale(any)).thenAnswer((_) async => Future.value());
-
-    final product = ProductModel(id: 'p1', name: 'Tênis', model: 'AirMax');
-    final variant = VariantModel(id: 'v1', color: 'Preto', imageUrl: '');
-    final sku = SkuModel(
+  // No explicit stub for processSale; PdvController.finalizeSale handles mocks that return null.
+  const product = ProductModel(id: 'p1', name: 'Tênis', model: 'AirMax', category: '', mainImageUrl: '');
+  const variant = VariantModel(id: 'v1', color: 'Preto', imageUrl: '');
+  const sku = SkuModel(
       id: 'sku1',
       size: '42',
       generatedSku: 'AIRMAX-42-PRETO',
@@ -109,10 +121,10 @@ void main() {
       stock: 10,
     );
 
-    controller.addItem(product, variant, sku);
-    final result = await controller.finalizeSale();
+  controller.addItem(product, variant, sku);
+  final result = await controller.finalizeSale();
 
-    expect(result, contains('sucesso'));
-    expect(controller.cart.isEmpty, true);
+  expect(result, contains('sucesso'));
+  expect(controller.cart.value.isEmpty, true);
   });
 }

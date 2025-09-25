@@ -2,37 +2,17 @@ import 'sku_model.dart';
 
 /// Representa um item individual dentro de uma venda.
 class SaleItemModel {
-  /// ID do produto principal.
   final String productId;
-
-  /// ID da variante (ex: cor).
   final String variantId;
-
-  /// ID do SKU (tamanho, estoque, etc).
   final String skuId;
-
-  /// Objeto SKU completo.
   final SkuModel sku;
-
-  /// Nome do produto com modelo (ex: Camiseta - Fusca).
   final String productName;
-
-  /// Cor da variante.
   final String variantColor;
-
-  /// Tamanho do SKU.
   final String skuSize;
-
-  /// Código gerado do SKU.
   final String generatedSku;
-
-  /// Preço pago por unidade.
   double pricePaid;
-
-  /// Quantidade comprada.
   int quantity;
 
-  /// Construtor principal.
   SaleItemModel({
     required this.productId,
     required this.variantId,
@@ -47,19 +27,11 @@ class SaleItemModel {
   })  : assert(pricePaid >= 0, 'Preço não pode ser negativo'),
         assert(quantity >= 0, 'Quantidade inválida');
 
-  /// Construtor vazio para fallback seguro.
   SaleItemModel.empty()
       : productId = '',
         variantId = '',
         skuId = '',
-        sku = SkuModel(
-          id: '',
-          size: '',
-          retailPrice: 0,
-          wholesalePrice: 0,
-          stock: 0,
-          generatedSku: '',
-        ),
+        sku = const SkuModel(id: '', size: '', retailPrice: 0, wholesalePrice: 0, stock: 0, generatedSku: ''),
         productName = '',
         variantColor = '',
         skuSize = '',
@@ -67,10 +39,8 @@ class SaleItemModel {
         pricePaid = 0.0,
         quantity = 0;
 
-  /// Verifica se o item é vazio.
   bool get isEmpty => productId.isEmpty;
 
-  /// Converte o objeto para um mapa para persistência no Firestore.
   Map<String, dynamic> toMap() {
     return {
       'productId': productId,
@@ -85,7 +55,6 @@ class SaleItemModel {
     };
   }
 
-  /// Cria uma instância a partir de um mapa.
   factory SaleItemModel.fromMap(Map<String, dynamic> map, SkuModel sku) {
     return SaleItemModel(
       productId: map['productId'] ?? '',
@@ -101,7 +70,6 @@ class SaleItemModel {
     );
   }
 
-  /// Cria uma cópia modificada do objeto.
   SaleItemModel copyWith({
     String? productId,
     String? variantId,
@@ -128,13 +96,10 @@ class SaleItemModel {
     );
   }
 
-  /// Compara dois objetos por igualdade.
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is SaleItemModel &&
-          runtimeType == other.runtimeType &&
-          skuId == other.skuId;
+      other is SaleItemModel && runtimeType == other.runtimeType && skuId == other.skuId;
 
   @override
   int get hashCode => skuId.hashCode;

@@ -7,6 +7,7 @@ class SkuModel extends Equatable {
   final double wholesalePrice;
   final int stock;
   final String generatedSku;
+  final String? qrImageUrl;
 
   const SkuModel({
     required this.id,
@@ -15,6 +16,7 @@ class SkuModel extends Equatable {
     required this.wholesalePrice,
     required this.stock,
     required this.generatedSku,
+    this.qrImageUrl,
   });
 
   bool get isAvailable => stock > 0;
@@ -27,9 +29,22 @@ class SkuModel extends Equatable {
       wholesalePrice: (data['wholesalePrice'] as num?)?.toDouble() ?? 0.0,
       stock: (data['stock'] as num?)?.toInt() ?? 0,
       generatedSku: data['generatedSku'] ?? '',
+  qrImageUrl: data['qrImageUrl'] as String?,
     );
   }
 
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'size': size,
+      'retailPrice': retailPrice,
+      'wholesalePrice': wholesalePrice,
+      'stock': stock,
+      'generatedSku': generatedSku,
+      'qrImageUrl': qrImageUrl,
+    };
+  }
+
   @override
-  List<Object?> get props => [id, size, retailPrice, wholesalePrice, stock, generatedSku];
+  List<Object?> get props => [id, size, retailPrice, wholesalePrice, stock, generatedSku, qrImageUrl];
 }

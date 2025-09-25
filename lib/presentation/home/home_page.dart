@@ -10,35 +10,34 @@ import 'home_controller.dart';
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
-  bool isAdmin(user) => user?.role == 'admin';
-  bool isPDV(user) => user?.role == 'pdv';
+  // Funções auxiliares para deixar o 'build' mais limpo
+  bool _isAdmin(user) => user?.role == 'admin';
+  bool _isPDV(user) => user?.role == 'pdv';
 
   @override
   Widget build(BuildContext context) {
     final controller = HomeController(context.read<ProductRepository>());
     final user = context.watch<AuthStateNotifier>().user;
 
-    // Proteção contra null e log seguro
+    // Usamos debugPrint para logs mais detalhados
     debugPrint('--- ROLE DO UTILIZADOR NA HOME: ${user?.role ?? 'Nenhum (a carregar)'} ---');
 
-    // Aguarda autenticação antes de renderizar
-    if (user == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+    // Mostra um indicador de carregamento enquanto o estado de autenticação é verificado
+    if (user == null && !context.read<AuthStateNotifier>().isAuthCheckComplete) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Vitrine de Produtos'),
         actions: [
-          if (isAdmin(user))
+          if (_isAdmin(user))
             IconButton(
               icon: const Icon(Icons.manage_accounts),
               tooltip: 'Gerir Utilizadores',
               onPressed: () => context.go('/user-management'),
             ),
-          if (isPDV(user))
+          if (_isPDV(user))
             IconButton(
               icon: const Icon(Icons.point_of_sale),
               tooltip: 'Ponto de Venda',
@@ -76,7 +75,7 @@ class HomePage extends StatelessWidget {
             itemCount: products.length,
             itemBuilder: (context, index) {
               final product = products[index];
-              final route = isAdmin(user)
+              final route = _isAdmin(user)
                   ? '/edit-product/${product.id}'
                   : '/product/${product.id}';
               return ProductCard(
@@ -87,7 +86,7 @@ class HomePage extends StatelessWidget {
           );
         },
       ),
-      floatingActionButton: isAdmin(user)
+      floatingActionButton: _isAdmin(user)
           ? FloatingActionButton(
               onPressed: () => context.go('/add-product'),
               child: const Icon(Icons.add),

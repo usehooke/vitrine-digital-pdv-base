@@ -1,5 +1,3 @@
-// CRIE ESTE NOVO FICHEIRO: lib/presentation/product/product_detail_controller.dart
-
 import '../../data/models/variant_model.dart';
 import '../../data/models/sku_model.dart';
 import '../../data/repositories/product_repository.dart';

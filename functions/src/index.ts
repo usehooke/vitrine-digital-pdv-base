@@ -1,36 +1,41 @@
 import * as functions from "firebase-functions";
-// Usamos 'require' para máxima compatibilidade no ambiente de Cloud Functions
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const {VertexAI} = require("@google-cloud/vertexai");
 
-// Configuração do Projeto
 const project = "hooke-loja-pdv-d2e5c";
 const location = "us-central1";
 
-// Inicialização dos serviços da Vertex AI
 const vertexAI = new VertexAI({project: project, location: location});
 const generativeModel = vertexAI.getGenerativeModel({
-  model: "gemini-1.5-flash-001", // Usamos um modelo moderno e rápido
+  model: "gemini-1.5-flash-001",
 });
 
-/**
- * Função chamada pelo Flutter para gerar o resumo de uma venda.
- */
 export const generateSummary = functions.https.onCall(async (request) => {
-  const prompt = request.data.prompt;
+  // O prompt vem do nosso Flutter App
+  const saleData = request.data.sale; // Vamos assumir que o Flutter envia os dados da venda
 
-  // Validação de segurança para garantir que o prompt é uma string
-  if (typeof prompt !== 'string' || !prompt) {
+  if (!saleData) {
     throw new functions.https.HttpsError(
-      "invalid-argument",
-      "O pedido tem de incluir um 'prompt' de texto válido.",
+      "invalid-argument", "O pedido tem de incluir os dados da venda ('sale')."
     );
   }
 
-  functions.logger.info(`Gerando resumo para prompt de ${prompt.length} caracteres.`);
+  // --- LÓGICA DE GERAÇÃO DO PROMPT (SUA SUGESTÃO APLICADA) ---
+  const items = saleData.items || [];
+  const itemsDescription = items
+    .slice(0, 5) // Pega apenas nos primeiros 5 itens
+    .map((item: any) => `- ${item.quantity}x ${item.productName} (${item.variantColor}, Tam: ${item.skuSize})`)
+    .join('\n');
+
+  const prompt = `Gere um resumo conciso e amigável, em uma frase, para a seguinte venda realizada por "${saleData.userName}":
+${itemsDescription}
+${items.length > 5 ? '...e mais itens.' : ''}
+Total: R$ ${saleData.totalAmount.toFixed(2)}`;
+  // --- FIM DA LÓGICA DO PROMPT ---
+
+  functions.logger.info(`Gerando resumo para o prompt: "${prompt}"`);
 
   try {
-    // A forma mais direta e robusta de chamar a API
     const result = await generativeModel.generateContent(prompt);
     const response = result.response;
     const summary = response.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -40,15 +45,11 @@ export const generateSummary = functions.https.onCall(async (request) => {
     }
 
     functions.logger.info(`Resumo gerado: "${summary}"`);
-
-    // Devolve o resumo para a aplicação Flutter
     return {summary: summary};
   } catch (error) {
-    functions.logger.error("Erro detalhado ao chamar a API Gemini:", error);
+    functions.logger.error("Erro ao chamar a API Gemini:", error);
     throw new functions.https.HttpsError(
-      "internal",
-      "Ocorreu um erro interno ao contactar a IA.",
-      error,
+      "internal", "Ocorreu um erro ao gerar o resumo.", error
     );
   }
 });

@@ -1,5 +1,3 @@
-// CONTEÚDO COMPLETO PARA: lib/data/models/sale_model.dart
-
 import 'sale_item_model.dart';
 
 class SaleModel {
@@ -23,7 +21,7 @@ class SaleModel {
 
   Map<String, dynamic> toMap() {
     return {
-      'saleDate': saleDate,
+      'saleDate': saleDate.toIso8601String(),
       'userId': userId,
       'userName': userName,
       'totalAmount': totalAmount,

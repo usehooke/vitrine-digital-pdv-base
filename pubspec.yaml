@@ -19,8 +19,6 @@ dependencies:
 
   # Roteamento
   go_router: ^14.2.0
-
-  # Gestão de Estado e Injeção de Dependência
   provider: ^6.1.2
 
   # Ferramentas de UI e Dispositivo
@@ -31,11 +29,21 @@ dependencies:
     # Ícones
   cupertino_icons: ^1.0.2
   equatable: ^2.0.7
+  # Dependencias Para QR, Scanner e impressção/PDF
+  qr: ^3.0.1
+  image: ^4.0.18
+  mobile_scanner: ^3.0.0
+  printing: ^5.10.0
+  pdf: ^3.10.0
+  http: ^0.13.6
+
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  mockito: ^5.5.1
+  mocktail: ^1.0.4
 
 flutter:
   uses-material-design: true

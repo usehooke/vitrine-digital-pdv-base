@@ -14,18 +14,18 @@ class UserModel extends Equatable {
   });
 
   factory UserModel.fromFirestore(Map<String, dynamic> data, String id) {
-    if (data['role'] == null || (data['role'] as String).isEmpty) {
+    final role = data['role'] ?? '';
+    if (role is! String || role.isEmpty) {
       throw Exception('O documento do utilizador $id no Firestore não tem uma "role" definida.');
     }
     return UserModel(
       id: id,
       name: data['name'] ?? '',
       email: data['email'] ?? '',
-      role: data['role'],
+      role: role,
     );
   }
 
-  // Lista as propriedades que definem a identidade deste objeto.
   @override
   List<Object?> get props => [id, name, email, role];
 }

@@ -109,7 +109,7 @@ class _UserFormBottomSheetState extends State<UserFormBottomSheet> {
             ],
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _selectedRole,
+              initialValue: _selectedRole,
               decoration: const InputDecoration(labelText: 'Função (Role)'),
               items: ['pdv', 'admin'].map((role) => DropdownMenuItem(value: role, child: Text(role.toUpperCase()))).toList(),
               onChanged: (value) => setState(() => _selectedRole = value ?? 'pdv'),
